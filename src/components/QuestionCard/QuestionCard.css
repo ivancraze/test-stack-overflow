@@ -1,0 +1,18 @@
+.question-card {
+  --bs-list-group-action-active-color: var(--bs-list-group-action-hover-color);
+  --bs-list-group-action-active-bg: var(--bs-list-group-action-hover-bg);
+}
+
+.list-group > .question-card + .question-card {
+  border-top-width: var(--bs-list-group-border-width);
+  margin-top: calc(-1 * var(--bs-list-group-border-width));
+}
+
+.question-card.border-success {
+  z-index: 2;
+}
+
+.question-card.border-warning,
+.question-card.border-primary {
+  z-index: 3;
+}
