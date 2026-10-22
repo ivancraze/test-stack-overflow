@@ -47,7 +47,8 @@ npm run lint:fix
 npm run format
 ```
 
-ESLint использует рекомендуемые правила JavaScript, TypeScript, React и React Hooks. Импорты сортируются автоматически; JSX-пропсы форматируются по одному на строку.
+ESLint использует рекомендуемые правила JavaScript, TypeScript, React и React Hooks.
+Еще добавил сортировку импортов и перенос пропсов.
 
 ## Структура
 
