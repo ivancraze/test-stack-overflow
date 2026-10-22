@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns'
 import { ru } from 'date-fns/locale/ru'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Form, Spinner, Stack } from 'react-bootstrap'
 import DatePicker from 'react-datepicker'
 
@@ -12,6 +12,7 @@ import { useAppDispatch, useAppSelector } from '@/store'
 
 export const QuestionsPage = () => {
   const dispatch = useAppDispatch()
+  const datePickerRef = useRef<DatePicker>(null)
   const [selectedDate, setSelectedDate] = useState(DEFAULT_DATE)
   const { resultsDate, items, status, error, page, hasMore } = useAppSelector(
     (state) => state.questions,
@@ -36,11 +37,27 @@ export const QuestionsPage = () => {
         </Card.Text>
       </Stack>
 
-      <Form className="border rounded bg-body p-3" onSubmit={(event) => event.preventDefault()}>
+      <Form
+        className="border rounded bg-body p-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (!canSearch || isLoading || !selectedDate) return
+          datePickerRef.current?.setOpen(false)
+          void dispatch(loadQuestions({ date: selectedDate, page: 1 }))
+        }}
+        onKeyDown={(event) => {
+          // DatePicker перехватывает Enter в поле даты, поэтому отправляем форму явно.
+          if (event.key === 'Enter' && event.target instanceof HTMLInputElement) {
+            event.preventDefault()
+            event.currentTarget.requestSubmit()
+          }
+        }}
+      >
         <Stack direction="horizontal" gap={3} className="align-items-end flex-wrap">
           <Form.Group>
             <Form.Label htmlFor="from-date">Показывать вопросы с</Form.Label>
             <DatePicker
+              ref={datePickerRef}
               id="from-date"
               selected={selectedDate ? parseISO(selectedDate) : null}
               dateFormat="dd.MM.yyyy"
@@ -59,10 +76,9 @@ export const QuestionsPage = () => {
           </Form.Group>
           {canSearch && (
             <Button
-              type="button"
+              type="submit"
               variant="success"
               disabled={isLoading || !selectedDate}
-              onClick={() => void dispatch(loadQuestions({ date: selectedDate, page: 1 }))}
             >
               {isLoading ? 'Загрузка...' : 'Поиск'}
             </Button>

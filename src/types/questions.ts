@@ -1,13 +1,17 @@
 import { z } from 'zod'
+import { decode } from 'html-entities'
+
+// Фикс < >
+const HtmlTextSchema = z.string().transform((value) => decode(value))
 
 export const QuestionOwnerSchema = z.object({
-  display_name: z.string().optional(),
+  display_name: HtmlTextSchema.optional(),
   reputation: z.number().optional(),
 })
 
 export const QuestionSchema = z.object({
   question_id: z.number(),
-  title: z.string(),
+  title: HtmlTextSchema,
   score: z.number(),
   is_answered: z.boolean(),
   owner: QuestionOwnerSchema.optional(),
