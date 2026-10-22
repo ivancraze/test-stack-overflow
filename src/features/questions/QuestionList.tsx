@@ -38,7 +38,7 @@ export const QuestionList = () => {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <ListGroup as="ul">
+      <ListGroup as="ul" style={{ isolation: 'isolate' }}>
         {items.map((question) => (
           <QuestionCard
             key={question.question_id}
