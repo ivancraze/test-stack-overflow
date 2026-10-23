@@ -20,6 +20,7 @@ export const QuestionList = () => {
       setSelectedForSwapId(id)
     } else {
       dispatch(questionsSwapped({ firstId: selectedForSwapId, secondId: id }))
+      setExpandedId(null)
       setSelectedForSwapId(null)
     }
   }
@@ -46,14 +47,13 @@ export const QuestionList = () => {
             expanded={expandedId === question.question_id}
             selectedForSwap={selectedForSwapId === question.question_id}
             onExpand={() =>
-              setExpandedId((current) =>
-                current === question.question_id ? null : question.question_id,
-              )
+              setExpandedId(expandedId === question.question_id ? null : question.question_id)
             }
             onDoubleClick={() => selectForSwap(question.question_id)}
             onScoreChange={(delta) => dispatch(scoreChanged({ id: question.question_id, delta }))}
             onDrop={(sourceId) => {
               dispatch(questionMoved({ sourceId, targetId: question.question_id }))
+              setExpandedId(null)
               setSelectedForSwapId(null)
             }}
           />
