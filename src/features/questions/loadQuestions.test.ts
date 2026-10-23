@@ -1,34 +1,60 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 
-import { PAGE_SIZE } from '@/constants'
+import { QUESTION_TITLE_KEYWORD } from '@/constants'
 
 import { loadQuestions, questionsReducer } from './questionsSlice'
 
-it('получает вопросы из настоящего Stack Exchange API и сохраняет их в Redux', async () => {
-  // Берём широкий период, чтобы получить непустой список, не привязываясь к конкретным вопросам.
-  const date = '2020-01-01'
+// Возвращаем настоящий fetch после теста, чтобы подмена не влияла на другие проверки.
+afterEach(() => vi.restoreAllMocks())
+
+it('добирает пять вопросов с react-redux в заголовке и сохраняет их в Redux', async () => {
+  const questionsMock = [
+    'React + Redux: Data not being passed correctly',
+    'React Redux useSelector',
+    'React-Redux dispatch',
+    'react&#45;redux &lt;Provider&gt;',
+    `${QUESTION_TITLE_KEYWORD} store`,
+    `${QUESTION_TITLE_KEYWORD} hooks`,
+    `${QUESTION_TITLE_KEYWORD} connect`,
+    `${QUESTION_TITLE_KEYWORD} middleware`,
+  ].map((title, index) => ({
+    question_id: index + 1,
+    title,
+    score: 10 - index,
+    is_answered: false,
+    last_activity_date: 1,
+  }))
+
+  console.log(questionsMock)
+
+  // Подменяем только сеть. Фильтрация, добор вопросов и Redux выполняются по-настоящему.
+  vi.spyOn(globalThis, 'fetch')
+    .mockRejectedValue(new Error('Лишний запрос к API'))
+    .mockResolvedValueOnce(
+      // На первой странице подходит только №3 — пятёрку нужно добрать со второй.
+      new Response(JSON.stringify({ items: questionsMock.slice(0, 3), has_more: true })),
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ items: questionsMock.slice(3), has_more: true })),
+    )
+
+  const date = '2023-01-01'
   const store = configureStore({ reducer: { questions: questionsReducer } })
 
-  // Используем настоящий fetch: запрос, проверка ответа Zod и reducer работают как в приложении.
-  const request = store.dispatch(loadQuestions({ date, page: 1 }))
+  const request = store.dispatch(loadQuestions({ date }))
   expect(store.getState().questions.status).toBe('loading')
-
-  // Ждём ответ сервера. При сетевой ошибке или ошибке API unwrap завершит тест ошибкой.
+  // Ждём завершения thunk; при ошибке unwrap завершит тест ошибкой.
   const response = await request.unwrap()
 
-  // Точные заголовки и рейтинги со временем меняются, поэтому проверяем наличие и число вопросов.
-  expect(response.items.length).toBeGreaterThan(0)
-  expect(response.items.length).toBeLessThanOrEqual(PAGE_SIZE)
+  // Проверяем отбор нужных вопросов, количество и порядок по рейтингу.
+  expect(response.map((question) => question.question_id)).toEqual([3, 4, 5, 6, 7])
 
-  // Проверяем, что реальные данные сервера сохранены в хранилище и загрузка завершена.
+  // Проверяем состояние Redux после загрузки
   expect(store.getState().questions).toMatchObject({
     status: 'succeeded',
-    items: response.items,
+    items: response,
     resultsDate: date,
-    page: 1,
-    hasMore: response.has_more,
     error: null,
   })
-  // Даём настоящему серверу до 15 секунд на ответ; без сети тест не пройдёт.
-}, 15_000)
+})
