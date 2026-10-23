@@ -1,8 +1,8 @@
 import './QuestionCard.css'
 
-import { useCallback } from 'react'
-import { Button, Collapse,ListGroup, Stack } from 'react-bootstrap'
-import { CaretDownFill, CaretUpFill, GripVertical } from "react-bootstrap-icons";
+import { type MouseEvent, useCallback } from 'react'
+import { Button, Collapse, ListGroup, Stack } from 'react-bootstrap'
+import { CaretDownFill, CaretUpFill, GripVertical } from 'react-bootstrap-icons'
 import { useDrag, useDrop } from 'react-dnd'
 
 import { QUESTION_DRAG_TYPE } from '@/constants'
@@ -61,6 +61,20 @@ export const QuestionCard = ({
     [drag],
   )
 
+  const handleClick = (event: MouseEvent) => {
+    if (event.detail === 2) return
+    onExpand()
+  }
+
+  const handleDoubleClick = (event: MouseEvent) => {
+    event.preventDefault()
+    onDoubleClick()
+  }
+
+  const preventTextSelection = (event: MouseEvent) => {
+    if (event.detail === 2) event.preventDefault()
+  }
+
   return (
     <ListGroup.Item
       as="li"
@@ -68,8 +82,9 @@ export const QuestionCard = ({
       action
       data-question-card
       className={`question-card${question.is_answered ? ' border-success bg-success-subtle' : ''}${selectedForSwap ? ' border-warning border-2' : ''}${dragging ? ' opacity-50' : ''}${isOver ? ' border-primary border-2' : ''}`}
-      onClick={onExpand}
-      onDoubleClick={onDoubleClick}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+      onMouseDown={preventTextSelection}
     >
       <Stack direction="horizontal" gap={3}>
         <div
