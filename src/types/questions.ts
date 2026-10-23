@@ -1,5 +1,5 @@
-import { z } from 'zod'
 import { decode } from 'html-entities'
+import { z } from 'zod'
 
 // Фикс < >
 const HtmlTextSchema = z.string().transform((value) => decode(value))
@@ -23,6 +23,8 @@ export const QuestionSchema = z.object({
 export const StackExchangeSuccessResponseSchema = z.object({
   items: z.array(QuestionSchema),
   has_more: z.boolean(),
+  //таймер ожидания в секундах от АПИ
+  backoff: z.number().optional(),
 })
 
 export const StackExchangeErrorResponseSchema = z.object({
@@ -39,12 +41,9 @@ export type Question = z.infer<typeof QuestionSchema>
 export type StackExchangeSuccessResponse = z.infer<typeof StackExchangeSuccessResponseSchema>
 export interface QuestionsQuery {
   date: string
-  page: number
 }
 
 export interface QuestionsState {
-  page: number
-  hasMore: boolean
   resultsDate: string | null
   items: Question[]
   status: 'idle' | 'loading' | 'succeeded' | 'failed'

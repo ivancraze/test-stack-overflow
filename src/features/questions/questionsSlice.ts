@@ -1,24 +1,18 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
-import type {
-  QuestionsQuery,
-  QuestionsState,
-  StackExchangeSuccessResponse,
-} from '@/types/questions'
+import type { Question, QuestionsQuery, QuestionsState } from '@/types/questions'
 
 import { fetchTopQuestions } from './stackExchangeApi'
 
 export const initialQuestionsState: QuestionsState = {
   resultsDate: null,
-  page: 1,
-  hasMore: false,
   items: [],
   status: 'idle',
   error: null,
 }
 
 export const loadQuestions = createAsyncThunk<
-  StackExchangeSuccessResponse,
+  Question[],
   QuestionsQuery,
   { state: { questions: QuestionsState } }
 >('questions/load', fetchTopQuestions, {
@@ -65,13 +59,11 @@ const questionsSlice = createSlice({
         state.status = 'loading'
         state.error = null
       })
-      // Заменяем список ответом API и сохраняем дату и страницу успешного запроса.
+      // Сохраняем найденную пятёрку и дату успешного запроса.
       .addCase(loadQuestions.fulfilled, (state, action) => {
         state.status = 'succeeded'
-        state.items = action.payload.items
-        state.hasMore = action.payload.has_more
+        state.items = action.payload
         state.resultsDate = action.meta.arg.date
-        state.page = action.meta.arg.page
       })
       // Показываем ошибку, сохраняя предыдущие результаты и параметры их загрузки.
       .addCase(loadQuestions.rejected, (state, action) => {

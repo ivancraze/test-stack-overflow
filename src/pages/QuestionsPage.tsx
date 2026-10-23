@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Form, Spinner, Stack } from 'react-bootstrap'
 import DatePicker from 'react-datepicker'
 
-import { QuestionCardSkeleton, QuestionsPagination } from '@/components'
-import { DEFAULT_DATE, PAGE_SIZE } from '@/constants'
+import { QuestionCardSkeleton } from '@/components'
+import { DEFAULT_DATE, QUESTION_TITLE_KEYWORD,QUESTIONS_LIMIT } from '@/constants'
 import { QuestionList } from '@/features/questions/QuestionList'
 import { loadQuestions } from '@/features/questions/questionsSlice'
 import { useAppDispatch, useAppSelector } from '@/store'
@@ -14,15 +14,13 @@ export const QuestionsPage = () => {
   const dispatch = useAppDispatch()
   const datePickerRef = useRef<DatePicker>(null)
   const [selectedDate, setSelectedDate] = useState(DEFAULT_DATE)
-  const { resultsDate, items, status, error, page, hasMore } = useAppSelector(
-    (state) => state.questions,
-  )
+  const { resultsDate, items, status, error } = useAppSelector((state) => state.questions)
   const isLoading = status === 'loading'
   const isInitialLoading = isLoading && resultsDate === null
 
   useEffect(() => {
     if (status === 'idle') {
-      void dispatch(loadQuestions({ date: DEFAULT_DATE, page: 1 }))
+      void dispatch(loadQuestions({ date: DEFAULT_DATE }))
     }
   }, [dispatch, status])
 
@@ -33,7 +31,8 @@ export const QuestionsPage = () => {
     <Stack gap={4}>
       <Stack>
         <Card.Text className="text-secondary">
-          Вопросы по react-redux, созданные начиная с выбранной даты, по {PAGE_SIZE} на странице.
+          {QUESTIONS_LIMIT} самых популярных вопросов с "{QUESTION_TITLE_KEYWORD}" в заголовке, созданных начиная с
+          выбранной даты.
         </Card.Text>
       </Stack>
 
@@ -43,7 +42,7 @@ export const QuestionsPage = () => {
           event.preventDefault()
           if (!canSearch || isLoading || !selectedDate) return
           datePickerRef.current?.setOpen(false)
-          void dispatch(loadQuestions({ date: selectedDate, page: 1 }))
+          void dispatch(loadQuestions({ date: selectedDate }))
         }}
         onKeyDown={(event) => {
           // DatePicker перехватывает Enter в поле даты, поэтому отправляем форму явно.
@@ -75,11 +74,7 @@ export const QuestionsPage = () => {
             />
           </Form.Group>
           {canSearch && (
-            <Button
-              type="submit"
-              variant="success"
-              disabled={isLoading || !selectedDate}
-            >
+            <Button type="submit" variant="success" disabled={isLoading || !selectedDate}>
               {isLoading ? 'Загрузка...' : 'Поиск'}
             </Button>
           )}
@@ -106,22 +101,12 @@ export const QuestionsPage = () => {
         {isInitialLoading ? (
           <QuestionCardSkeleton />
         ) : items.length > 0 ? (
-          <QuestionList key={`${resultsDate}-${page}`} />
+          <QuestionList key={resultsDate} />
         ) : !isLoading && !error && isCurrentResults ? (
           <Alert variant="light" className="mb-0">
             По выбранной дате вопросов не найдено.
           </Alert>
         ) : null}
-        {resultsDate !== null && (items.length > 0 || page > 1) && (
-          <QuestionsPagination
-            page={page}
-            hasMore={hasMore}
-            disabled={isLoading || !isCurrentResults}
-            onPageChange={(nextPage) => {
-              void dispatch(loadQuestions({ date: resultsDate, page: nextPage }))
-            }}
-          />
-        )}
       </Stack>
     </Stack>
   )

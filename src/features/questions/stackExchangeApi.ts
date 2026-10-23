@@ -1,10 +1,15 @@
-import { API_URL, PAGE_SIZE } from '@/constants'
+import { API_PAGE_SIZE, API_URL, QUESTION_TITLE_KEYWORD, QUESTIONS_LIMIT } from '@/constants'
 import {
+  type Question,
   type QuestionsQuery,
   StackExchangeResponseSchema,
   type StackExchangeSuccessResponse,
 } from '@/types/questions'
-import { dateToUnixSeconds } from "@/utils";
+import { dateToUnixSeconds } from '@/utils'
+
+// https://api.stackexchange.com/docs/throttle
+// Глобально храним настройку для паузы
+let backoffUntil = 0
 
 export function parseStackExchangeResponse(value: unknown): StackExchangeSuccessResponse {
   const result = StackExchangeResponseSchema.safeParse(value)
@@ -19,21 +24,22 @@ export function parseStackExchangeResponse(value: unknown): StackExchangeSuccess
   return data
 }
 
-export async function fetchTopQuestions({
-  date,
-  page,
-}: QuestionsQuery): Promise<StackExchangeSuccessResponse> {
+async function fetchQuestionsPage(date: string, page: number): Promise<StackExchangeSuccessResponse> {
   const url = new URL('search/advanced', API_URL)
   url.search = new URLSearchParams({
     site: 'stackoverflow',
-    title: 'react-redux',
+    title: QUESTION_TITLE_KEYWORD,
     fromdate: String(dateToUnixSeconds(date)),
-    pagesize: String(PAGE_SIZE),
+    pagesize: String(API_PAGE_SIZE),
     page: String(page),
     // Сортировка по голосам.
     sort: 'votes',
     order: 'desc',
   }).toString()
+
+  // Ограничение API действует и на следующую загрузку с другой датой.
+  const wait = backoffUntil - Date.now()
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait))
 
   let response: Response
   try {
@@ -50,5 +56,30 @@ export async function fetchTopQuestions({
   } catch {
     throw new Error('Stack Exchange API вернул некорректный JSON')
   }
-  return parseStackExchangeResponse(data)
+  const result = parseStackExchangeResponse(data)
+  if (result.backoff !== undefined) backoffUntil = Date.now() + result.backoff * 1000
+  return result
+}
+
+// Апишка от стака не позволяет искать точное вхождение ключа,
+// поэтому костыль с накоплением пяти вопросов с нескольких страниц
+export async function fetchTopQuestions({ date }: QuestionsQuery): Promise<Question[]> {
+  const items: Question[] = []
+  let page = 1
+  let hasMore = true
+
+  while (items.length < QUESTIONS_LIMIT && hasMore) {
+    const result = await fetchQuestionsPage(date, page)
+    const matchingQuestions = result.items.filter(
+      (question) =>
+        question.title.toLowerCase().includes(QUESTION_TITLE_KEYWORD) &&
+        !items.some((item) => item.question_id === question.question_id),
+    )
+    items.push(...matchingQuestions)
+    hasMore = result.has_more
+    page += 1
+  }
+
+  // Порядок по рейтингу уже задан API.
+  return items.slice(0, QUESTIONS_LIMIT)
 }
