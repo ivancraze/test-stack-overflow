@@ -31,7 +31,7 @@ export const QuestionsPage = () => {
     <Stack gap={4}>
       <Stack>
         <Card.Text className="text-secondary">
-          {QUESTIONS_LIMIT} самых популярных вопросов с "{QUESTION_TITLE_KEYWORD}" в заголовке, созданных начиная с
+          {QUESTIONS_LIMIT} самых популярных вопросов с {`"${QUESTION_TITLE_KEYWORD}"`} в заголовке, созданных начиная с
           выбранной даты.
         </Card.Text>
       </Stack>
